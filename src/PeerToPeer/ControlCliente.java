@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,6 +33,17 @@ public class ControlCliente extends Thread {
         this.salida=output;
         this.apodo=apodo;
     }
+    public void horaActual(Date tiempo)
+    {
+        Calendar calendario = Calendar.getInstance();     
+        int hora, minutos, segundos,milisegundos;
+        hora =calendario.get(Calendar.HOUR_OF_DAY);
+        minutos = calendario.get(Calendar.MINUTE);
+        segundos = calendario.get(Calendar.SECOND);
+        tiempo.setHours(hora);
+        tiempo.setMinutes(minutos);
+        tiempo.setSeconds(segundos);       
+    }    
    public void enviarDatosCarga(String mensaje )
    {
       // enviar objeto al servidor
@@ -96,16 +109,23 @@ public class ControlCliente extends Thread {
         System.out.println("Cliente "+apodo+" reportando apodoServidor: "+apodoServidor);       
         while (true)
         {      
-            try{
             //System.out.println("error = " +entrada.readObject().getClass());         
             Object  mensaje =(Object)entrada.readObject();
-
-            }
-            catch (IOException exx)
+            System.out.println("clase mensaje: "+mensaje.getClass().toString());
+            if(mensaje.getClass().toString().compareTo("class PeerToPeer.nodoNombre")==0)
             {
-           
+                nodoNombre T1=(nodoNombre)mensaje;
+                Date tiempoServidor=T1.getTiempo();
+                Date tiempoCliente=new Date();
+                System.out.println(tiempoServidor.getHours()+":"+tiempoServidor.getMinutes()+":"+tiempoServidor.getSeconds());
+                horaActual(tiempoCliente);
+                salida.writeObject(new nodoNombre(apodo,tiempoCliente));
             }
-
+            else 
+            {
+                String desv=(String)mensaje;
+                System.out.println("Mi desviacion es: "+desv);
+            }
         }   
    } // fin del metodo procesarConexion
    

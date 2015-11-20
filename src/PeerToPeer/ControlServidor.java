@@ -10,6 +10,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -35,7 +37,26 @@ public class ControlServidor extends Thread{
         this.conexion = conexion;
         
     }
-
+    public void horaActual(Date tiempo)
+    {
+        Calendar calendario = Calendar.getInstance();     
+        int hora, minutos, segundos,milisegundos;
+        hora =calendario.get(Calendar.HOUR_OF_DAY);
+        minutos = calendario.get(Calendar.MINUTE);
+        segundos = calendario.get(Calendar.SECOND);
+        tiempo.setHours(hora);
+        tiempo.setMinutes(minutos);
+        tiempo.setSeconds(segundos);       
+    }
+    public int obtenerDesviacion(Date actual,Date antes,Date cliente)
+    {
+        int segActual,segAntes,segCliente,D;
+        segActual=actual.getHours()*3600+actual.getMinutes()*60+actual.getSeconds();
+        segAntes=antes.getHours()*3600+antes.getMinutes()*60+antes.getSeconds();
+        segCliente=cliente.getHours()*3600+cliente.getMinutes()*60+cliente.getSeconds();
+        D=segActual-segAntes;       
+        return segCliente-segAntes-D/2;
+    }
     // configurar y ejecutar el servidor 
     public void sendTo(String destino,String msg) throws IOException {
         Enumeration e = clientes.elements();
@@ -101,6 +122,21 @@ public class ControlServidor extends Thread{
                         //sendToAll(salida,"<i>"+nombre+">>>"+msg+"</i><br>");
                     // Esperar una nueva linea
                     Object msg =(Object)entrada.readObject();
+                    if(msg.getClass().toString().compareTo("class PeerToPeer.nodoNombre")==0)
+                    {
+                        nodoNombre T2=(nodoNombre)msg;
+                        Date tiempoCliente=T2.getTiempo();
+                        Date tiempoNodoActual=new Date();
+                        System.out.println(tiempoNodoActual.getHours()+":"+tiempoNodoActual.getMinutes()+":"+tiempoNodoActual.getSeconds());
+                        horaActual(tiempoNodoActual);
+                        Date tiempoNodoAntes=panel.getTiempoNodo();
+                        int desvT2=obtenerDesviacion(tiempoNodoActual,tiempoNodoAntes,tiempoCliente);                        
+                        sendTo(T2.getNombre(),String.valueOf(desvT2));
+                    }
+                    else
+                    {
+                        System.out.println("error recibiendo hora");
+                    }                    
    
                 }
                 //si el cliente envia linea en blaco, se cierra su chat y la conexion

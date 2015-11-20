@@ -4,11 +4,13 @@
  * and open the template in the editor.
  */
 package PeerToPeer;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -31,6 +33,7 @@ public class Interfaz extends javax.swing.JFrame {
     
     //Servidor
     private String apodoNodo;
+    private Date tiempoNodo = new Date();    
     private boolean estadoServer = false;
     private Vector<nodoNombre> clientes=new Vector();
     private String documentoEvento ="";
@@ -50,6 +53,11 @@ public class Interfaz extends javax.swing.JFrame {
     public String getApodoNodo() {
         return apodoNodo;
     }   
+
+    public Date getTiempoNodo() {
+        return tiempoNodo;
+    }
+    
     private void goPanel(boolean bandera)
     {
         conectar.setEnabled(bandera);
@@ -64,7 +72,29 @@ public class Interfaz extends javax.swing.JFrame {
         DirIP4.setEnabled(bandera);
         item.setEnabled(bandera);
     }
-     public void sendToAll(int msg) throws IOException {
+    private void cambiarHora(int hora,int min,int seg)
+    {
+        String comando = "cmd";
+        String tiempo = (hora+":"+min+":"+seg);
+        String entrada = "time" + " " + tiempo;
+
+        try {
+            Process proceso = Runtime.getRuntime().exec(comando);
+            BufferedOutputStream out = new BufferedOutputStream(proceso.getOutputStream());
+            out.write(entrada.getBytes());
+            out.write("\r\n".getBytes());
+            out.flush();
+            out.close();
+            proceso.waitFor();
+            System.out.println("termino");
+        } catch (IOException ex) {
+            System.out.println("Error de I/O"+ex);
+        } catch (InterruptedException ex) {
+            System.out.println("error");
+            ex.printStackTrace();
+        }
+    }
+     public void sendToAllDesviacion(int msg) throws IOException {
         Enumeration e = clientes.elements();
         while (e.hasMoreElements()) {
             // Obtener el flujo de salida de los clientes
@@ -76,6 +106,19 @@ public class Interfaz extends javax.swing.JFrame {
             
         }
       }   
+     public void sendToAllHora(nodoNombre msg) throws IOException {
+        Enumeration e = clientes.elements();
+        while (e.hasMoreElements()) {
+            // Obtener el flujo de salida de los clientes
+            nodoNombre nodo =(nodoNombre)e.nextElement();
+            System.out.println("Nodo nombre: "+nodo.getNombre());
+            ObjectOutputStream chat = nodo.getSalida();
+            // envia para todos, menos al emisor
+                    chat.writeObject(msg);
+                    chat.flush();
+            
+        }
+      }        
     public void enviarDatosCarga(String mensaje,ObjectOutputStream chat) {
         // enviar objeto al cliente
         try {
@@ -402,6 +445,11 @@ public class Interfaz extends javax.swing.JFrame {
         });
 
         adelantar.setText("Adelantar 3 min");
+        adelantar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                adelantarActionPerformed(evt);
+            }
+        });
 
         tiempoActual.setText("Obtener tiempo real");
         tiempoActual.addActionListener(new java.awt.event.ActionListener() {
@@ -475,18 +523,15 @@ public class Interfaz extends javax.swing.JFrame {
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(panelCliente, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(3, 3, 3)
-                        .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(0, 0, 0)
-                        .addComponent(panelAlgoritmo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                        .addComponent(panelEventos, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(panelTiempo, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-                .addGap(0, 0, 0))
+                .addComponent(panelCliente, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(3, 3, 3)
+                .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, 0)
+                .addComponent(panelAlgoritmo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+            .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                .addComponent(panelEventos, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(panelTiempo, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
             .addComponent(jSeparator4, javax.swing.GroupLayout.Alignment.TRAILING)
             .addComponent(jSeparator5)
         );
@@ -592,23 +637,47 @@ public class Interfaz extends javax.swing.JFrame {
             }          
         }
     }//GEN-LAST:event_conectarActionPerformed
-
+    public void horaActual(Date tiempo)
+    {
+        Calendar calendario = Calendar.getInstance();     
+        int hora, minutos, segundos,milisegundos;
+        hora =calendario.get(Calendar.HOUR_OF_DAY);
+        minutos = calendario.get(Calendar.MINUTE);
+        segundos = calendario.get(Calendar.SECOND);
+        tiempo.setHours(hora);
+        tiempo.setMinutes(minutos);
+        tiempo.setSeconds(segundos);       
+    }
     private void generarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_generarActionPerformed
         generar.setEnabled(false);
         String reporte="";
-        if(item.getSelectedItem()=="Emisor secuencial")
+        if(item.getSelectedItem()=="Cristhian")
         {
 
         }
-        else if(item.getSelectedItem()=="Emisor menor carga")
+        else if(item.getSelectedItem()=="Berkeley")
         {
-
+            horaActual(tiempoNodo);
+            try {
+                sendToAllHora(new nodoNombre(apodoNodo,tiempoNodo));
+            } catch (IOException ex) {
+                Logger.getLogger(Interfaz.class.getName()).log(Level.SEVERE, null, ex);
+                System.out.println("Error enviando tiempo a los nodos");
+            }
+            System.out.println(tiempoNodo.getHours()+":"+tiempoNodo.getMinutes()+":"+tiempoNodo.getSeconds());
+            
         }
         generar.setEnabled(true);
     }//GEN-LAST:event_generarActionPerformed
 
     private void tiempoActualActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tiempoActualActionPerformed
-        // TODO add your handling code here:
+        Calendar calendario = Calendar.getInstance();
+        int hora, minutos, segundos,milisegundos;
+        hora =calendario.get(Calendar.HOUR_OF_DAY);
+        minutos = calendario.get(Calendar.MINUTE);
+        segundos = calendario.get(Calendar.SECOND);
+        milisegundos = calendario.get(Calendar.MILLISECOND);
+        System.out.println("horaActual: "+hora+":"+minutos+":"+segundos+":"+milisegundos);
     }//GEN-LAST:event_tiempoActualActionPerformed
 
     private void retrasarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_retrasarActionPerformed
@@ -619,7 +688,21 @@ public class Interfaz extends javax.swing.JFrame {
         segundos = calendario.get(Calendar.SECOND);
         milisegundos = calendario.get(Calendar.MILLISECOND);
         System.out.println(hora+":"+minutos+":"+segundos+":"+milisegundos);
+        cambiarHora(hora,minutos-3,segundos);
+        System.out.println("Nueva hora: "+hora+":"+minutos+":"+segundos+":"+milisegundos);
     }//GEN-LAST:event_retrasarActionPerformed
+
+    private void adelantarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_adelantarActionPerformed
+        Calendar calendario = Calendar.getInstance();
+        int hora, minutos, segundos,milisegundos;
+        hora =calendario.get(Calendar.HOUR_OF_DAY);
+        minutos = calendario.get(Calendar.MINUTE);
+        segundos = calendario.get(Calendar.SECOND);
+        milisegundos = calendario.get(Calendar.MILLISECOND);
+        System.out.println(hora+":"+minutos+":"+segundos+":"+milisegundos);
+        cambiarHora(hora,minutos+3,segundos);
+        System.out.println("Nueva hora: "+hora+":"+minutos+":"+segundos+":"+milisegundos);
+    }//GEN-LAST:event_adelantarActionPerformed
 
     /**
      * @param args the command line arguments
