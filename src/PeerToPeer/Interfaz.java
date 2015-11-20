@@ -612,7 +612,13 @@ public class Interfaz extends javax.swing.JFrame {
     }//GEN-LAST:event_tiempoActualActionPerformed
 
     private void retrasarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_retrasarActionPerformed
-
+        Calendar calendario = Calendar.getInstance();
+        int hora, minutos, segundos,milisegundos;
+        hora =calendario.get(Calendar.HOUR_OF_DAY);
+        minutos = calendario.get(Calendar.MINUTE);
+        segundos = calendario.get(Calendar.SECOND);
+        milisegundos = calendario.get(Calendar.MILLISECOND);
+        System.out.println(hora+":"+minutos+":"+segundos+":"+milisegundos);
     }//GEN-LAST:event_retrasarActionPerformed
 
     /**
